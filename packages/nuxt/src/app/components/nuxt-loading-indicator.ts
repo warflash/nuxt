@@ -36,7 +36,6 @@ export default defineComponent({
     onBeforeUnmount(indicator.clear)
 
     return () => h('div', {
-      class: 'nuxt-loading-indicator',
       style: {
         position: 'fixed',
         top: 0,

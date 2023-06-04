@@ -1,4 +1,5 @@
-import { useRouter } from '#app/composables/router'
+import { nextTick } from 'vue'
+import { useRoute } from '#app/composables/router'
 import { defineNuxtPlugin } from '#app/nuxt'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -7,9 +8,10 @@ export default defineNuxtPlugin((nuxtApp) => {
   let finishTransition: undefined | (() => void)
   let abortTransition: undefined | (() => void)
 
-  const router = useRouter()
-
-  router.beforeResolve((to) => {
+  const route = useRoute()
+  nuxtApp.hook('page:finish', () => {
+    const to = route
+    // router.afterEach((to) => {
     if (to.meta.pageTransition === false) { return }
 
     const promise = new Promise<void>((resolve, reject) => {
@@ -22,6 +24,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     const transition = document.startViewTransition!(() => {
       changeRoute()
+      console.log('transition started')
       return promise
     })
 
@@ -38,9 +41,11 @@ export default defineNuxtPlugin((nuxtApp) => {
     abortTransition = undefined
   })
 
-  nuxtApp.hook('page:finish', () => {
-    finishTransition?.()
-    finishTransition = undefined
+  nuxtApp.hook('page:finish', async () => {
+    await nextTick(() => {
+      finishTransition?.()
+      finishTransition = undefined
+    })
   })
 })
 
