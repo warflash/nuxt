@@ -1,0 +1,51 @@
+name: Nuxt Bundle Size Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  NODE_OPTIONS: --max-old-space-size=6144
+
+jobs:
+  check_size:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node
+        run: corepack enable
+        uses: actions/setup-node@v3.8.1
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Nuxt
+        run: pnpm build
+
+      # Generate the .tgz package without publishing
+      - name: Generate Nuxt Package
+        run: ./scripts/generate-package.sh
+
+      # Find the path of the .tgz package (assuming it's in the root)
+      - name: Get .tgz file path
+        run: echo "::set-output name=tgz_path::$(ls *.tgz)"
+        id: get-tgz-path
+
+      # Create a new directory and install the Nuxt package from the .tgz file using pnpm
+      - name: Install Nuxt from packed .tgz using pnpm in a new project
+        run: |
+          mkdir new_project && cd new_project
+          pnpm i ${{ steps.get-tgz-path.outputs.tgz_path }}
+
+      # Calculate the size of the node_modules directory
+      - name: Calculate node_modules size
+        run: |
+          cd new_project
+          echo "Node_modules size: $(du -sh node_modules | cut -f1)"
